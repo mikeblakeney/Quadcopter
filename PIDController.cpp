@@ -18,34 +18,42 @@ PIDController::PIDController()
 	lastTime = millis();
 }
 
-void PIDController::compute(float state, float desired, float &output)
+void PIDController::compute(double state, double desired, double &output)
 {
 	
 	long now = millis();
-	long current_dt = now - lastTime;
+	float current_dt = (now - lastTime);
 	
 
 
 	if( current_dt >= dt)
 	{
-		float error = desired - state;
+		double error = desired - state;
 		
-		/*
-		Serial.print(state);
-		Serial.print(",");
-		Serial.print(desired);
-		Serial.print(",");
-		Serial.println(error);
-	*/
+		current_dt = current_dt / 1000.0;
 
-		float e_P = error;
+	
 
-		float e_I = errSum + error * current_dt;
+		double e_P = error;
 
-		float e_D = (error - prevErr)/current_dt;
+		double e_I = errSum + error * current_dt;
+
+		double e_D = (error - prevErr)/current_dt;
 
 		output = Kp * e_P + Ki * e_I + Kd * e_D;
-
+/*
+		Serial.print(state);
+		Serial.print('\t');
+		Serial.print(desired);
+		Serial.print('\t');
+		Serial.print(error);
+		Serial.print('\t');
+		Serial.print(e_I);
+		Serial.print('\t');
+		Serial.print(e_D);
+		Serial.print('\t');
+		Serial.println(output);
+*/
 		errSum = e_I;
 		prevErr = error;
 		lastTime = now;

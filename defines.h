@@ -6,7 +6,7 @@
 #define MOTOR_C 10
 #define MOTOR_D 11
 
-#define THROTTLE_PIN 2
+#define THROTTLE_PIN 3
 #define ROLL_PIN	4
 #define PITCH_PIN	7
 
@@ -30,8 +30,10 @@
 #define ROLL_SIG_MAX	1890
 #define ROLL_SIG_MIN	1030
 
-#define MPU_INT_PIN	8
+#define MPU_INT_PIN 2
 
-#define CYCLE_TIME	10
+#define CYCLE_TIME	100
+
+#define MPU_ARRAY_SIZE	7
 
 #endif

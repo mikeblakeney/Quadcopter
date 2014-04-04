@@ -4,7 +4,6 @@
 #include "MPU6050_6Axis_MotionApps20.h"
 
 #include "PIDController.h"
-#include "PinChangeInt.h"
 
 #include "Servo.h"
 #include "MotorController.h"
@@ -32,10 +31,7 @@ bool mpuInterrupt = false;
 void setup()
 {
 	Serial.begin(115200);
-
 	
-	
-
 	Serial.println("Setting up sensors");
 	orientation = new OrientationSensor();
 
@@ -44,7 +40,7 @@ void setup()
 	pitchControl = new PIDController();
 	rollControl = new PIDController();
 
-	pitchControl->setTunings(0.10, 0.00, 0.0);
+	pitchControl->setTunings(100.0, 0.01, 0.01);
 	
 	Serial.println("Arming motors");
 	motorControl->arm_esc();
@@ -57,29 +53,60 @@ void setup()
 
 void loop()
 {
+	while(!mpuInterrupt && !orientation->extraPackets())
+	{
+		long now = millis();
+		if( (now - lastTime) >= CYCLE_TIME)
+		{
+			int newThrottleSig = pulseIn(THROTTLE_PIN, HIGH, 11000);
+			if(newThrottleSig > 0)
+			{
+				throttle_sig = newThrottleSig;
+			}
 
-		motorControl->setThrottle(throttle_sig);
+			int newRollSig = pulseIn(ROLL_PIN, HIGH, 11000);
+			if(newRollSig > 0)
+			{
+				roll_sig = newRollSig;
+			}
+
+			int newPitchSig = pulseIn(PITCH_PIN, HIGH, 11000);
+			if(newPitchSig > 0)
+			{
+				pitch_sig = newPitchSig;
+			}
+			lastTime = now;
+		}
+		
+		float pitch_g = pitchSignalToAngle(pitch_sig);
+		double pitch_d = 0;
+		
+		
+		pitchControl->compute(pitch, pitch_g, pitch_d);
+		
 		if(throttle_sig >= THROTTLE_SIG_MIN)
 		{
-	
-			float *ypr = orientation->getOrientation(mpuInterrupt);
-
-			pitch = ypr[1];
-			mpuInterrupt = false;
-			float pitch_g = pitchSignalToAngle(pitch_sig);
-			float pitch_d = 0;
-			pitchControl->compute(pitch, pitch_g, pitch_d);
+			motorControl->setThrottle(throttle_sig);
 			motorControl->setPitch(pitch_d);
-	
-			Serial.print(pitch_g);
-			Serial.print('\t');
-			Serial.print(pitch);
-			Serial.print('\t');
-			Serial.println(pitch_d);
+		}
+		
+		float roll_g = rollSignalToAngle(roll_sig);
+		
+		/*
+		Serial.print(pitch_g);
+		Serial.print('\t');
+		Serial.println(pitch);
+		*/
 
-			float roll_g = rollSignalToAngle(roll_sig);
+		
+		//Serial.println(throttle_sig);
+		//Serial.println(roll_sig);
+		//Serial.println(pitch_sig);
 	}
 
+	float *ypr = orientation->getOrientation(mpuInterrupt);
+	pitch = ypr[1];
+	mpuInterrupt = false;
 }
 
 
@@ -100,14 +127,7 @@ void init_interrupts()
 	
     Serial.println(F("Waiting for first MPU interrupt..."));
 	pinMode(MPU_INT_PIN, INPUT);
-	PCintPort::attachInterrupt(MPU_INT_PIN, &updateMPUInterrupt, RISING);
-
-	pinMode(THROTTLE_PIN, INPUT);
-	PCintPort::attachInterrupt(THROTTLE_PIN, &updateThrottle, RISING);
-	pinMode(ROLL_PIN, INPUT);
-	PCintPort::attachInterrupt(ROLL_PIN, &updateRoll, RISING);
-	pinMode(PITCH_PIN, INPUT);
-	PCintPort::attachInterrupt(PITCH_PIN, &updatePitch, RISING);
+	attachInterrupt(0, &updateMPUInterrupt, RISING);
 
 	throttle_sig = 0;
 	pitch_sig = (PITCH_SIG_MAX + PITCH_SIG_MIN) / 2;
@@ -119,23 +139,4 @@ void updateMPUInterrupt()
 	mpuInterrupt = true;
 }
 
-void updateThrottle()
-{
-	throttle_sig = pulseIn(THROTTLE_PIN, HIGH, 25000);		
-}
 
-void updateRoll()
-{
-	if(throttle_sig >= THROTTLE_SIG_MIN)
-		roll_sig = pulseIn(ROLL_PIN, HIGH, 25000);
-	else
-		roll_sig = (ROLL_SIG_MAX + ROLL_SIG_MIN) / 2;
-}
-
-void updatePitch()
-{
-	if(throttle_sig >= THROTTLE_SIG_MIN)
-		pitch_sig = pulseIn(PITCH_PIN, HIGH, 25000);
-	else
-		pitch_sig = (PITCH_SIG_MAX + PITCH_SIG_MIN) / 2;
-}

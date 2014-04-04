@@ -45,9 +45,9 @@ void MotorController::setThrottle(int throttle_sig)
 	int throttle = map(throttle_sig, THROTTLE_SIG_MIN, THROTTLE_SIG_MAX, THROTTLE_MIN, THROTTLE_MAX);
 	
 	motorA_speed = throttle;
-	motorB_speed = throttle;
+	//motorB_speed = throttle;
 	motorC_speed = throttle;
-	motorD_speed = throttle;
+	//motorD_speed = throttle;
 
 
 
@@ -56,7 +56,7 @@ void MotorController::setThrottle(int throttle_sig)
 
 void MotorController::setPitch(float pitch_d)
 {
-	pitch_d = (pitch_d / ( PITCH_MAX - PITCH_MIN) ) * (PITCH_SIG_MAX - PITCH_SIG_MIN);
+	//pitch_d = (pitch_d / ( PITCH_MAX - PITCH_MIN) ) * (PITCH_SIG_MAX - PITCH_SIG_MIN);
 	motorA_speed = motorA_speed + pitch_d;
 	motorC_speed = motorC_speed - pitch_d;
 	
@@ -65,13 +65,13 @@ void MotorController::setPitch(float pitch_d)
 
 /*
 	Serial.print('\t');
-	 Serial.print(pitch_d);
+	Serial.print(pitch_d);
 	
-		Serial.print('\t');
-		Serial.print(motorA_speed);
-		Serial.print('\t');
-		Serial.println(motorC_speed);
-	*/
+	Serial.print('\t');
+	Serial.print(motorA_speed);
+	Serial.print('\t');
+	Serial.println(motorC_speed);
+*/	
 	this->updateMotorSpeeds();
 }
 

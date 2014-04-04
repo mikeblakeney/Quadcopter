@@ -7,12 +7,20 @@
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
+
+struct ypr_t {
+	float yaw;
+	float pitch;
+	float roll;
+};
+
 class OrientationSensor
 {
 public:
 	OrientationSensor();
 
 	float* getOrientation(bool mpuInterrupt);
+	bool extraPackets();
 	
 
 private:
@@ -24,8 +32,9 @@ private:
 	
 	float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-	float pitchAngle;
-
+	ypr_t rawOrientation[MPU_ARRAY_SIZE];
+	ypr_t rawSum;
+	int rawIndex;
 
 	float getAccelPitch();
 	float getGyroPitch();
