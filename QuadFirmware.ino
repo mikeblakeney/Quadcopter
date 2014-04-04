@@ -16,8 +16,8 @@ MotorController *motorControl;
 PIDController *pitchControl;
 PIDController *rollControl;
 
-double pitch;
-double roll;
+float pitch;
+float roll;
 
 int throttle_sig = 0;
 
@@ -104,8 +104,19 @@ void loop()
 		//Serial.println(pitch_sig);
 	}
 
-	float *ypr = orientation->getOrientation(mpuInterrupt);
-	pitch = ypr[1];
+	ypr_t ypr = orientation->getOrientation(mpuInterrupt);
+	if(!ypr.error)
+	{
+		pitch = ypr.pitch;
+	}else if(ypr.error == 1) {
+		Serial.println("Packet size error");
+	}else if(ypr.error == 2) {
+		Serial.println("FIFO overflow");
+	}
+	
+
+	Serial.println(pitch);
+	
 	mpuInterrupt = false;
 }
 

@@ -12,6 +12,8 @@ struct ypr_t {
 	float yaw;
 	float pitch;
 	float roll;
+
+	int error;
 };
 
 class OrientationSensor
@@ -19,7 +21,7 @@ class OrientationSensor
 public:
 	OrientationSensor();
 
-	float* getOrientation(bool mpuInterrupt);
+	ypr_t getOrientation(bool mpuInterrupt);
 	bool extraPackets();
 	
 
@@ -29,12 +31,6 @@ private:
 	uint16_t fifoCount;     // count of all bytes currently in FIFO
 	uint8_t fifoBuffer[64]; // FIFO storage buffer
 	uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-	
-	float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-	ypr_t rawOrientation[MPU_ARRAY_SIZE];
-	ypr_t rawSum;
-	int rawIndex;
 
 	float getAccelPitch();
 	float getGyroPitch();
