@@ -27,10 +27,10 @@ MotorController::MotorController(int pinA, int pinB, int pinC, int pinD)
 
 void MotorController::arm_esc()
 { 
-	 motorA.writeMicroseconds(THROTTLE_MIN);
-	 motorB.writeMicroseconds(THROTTLE_MIN);
-	 motorC.writeMicroseconds(THROTTLE_MIN);
-	 motorD.writeMicroseconds(THROTTLE_MIN); 
+	 motorA.writeMicroseconds(ARM_ESC_SIG);
+	 motorB.writeMicroseconds(ARM_ESC_SIG);
+	 motorC.writeMicroseconds(ARM_ESC_SIG);
+	 motorD.writeMicroseconds(ARM_ESC_SIG); 
 	 delay(1000);
 }
 
@@ -42,7 +42,7 @@ void MotorController::stop_motors()
 
 void MotorController::setThrottle(int throttle_sig)
 {
-	int throttle = map(throttle_sig, THROTTLE_SIG_MIN, THROTTLE_SIG_MAX, THROTTLE_MIN, THROTTLE_MAX);
+	int throttle = map(throttle_sig, THROTTLE_SIG_MIN, THROTTLE_SIG_MAX, ARM_ESC_SIG, THROTTLE_MAX);
 	
 	motorA_speed = throttle;
 	//motorB_speed = throttle;

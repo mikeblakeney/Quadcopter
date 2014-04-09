@@ -8,44 +8,49 @@
 #include "Servo.h"
 #include "MotorController.h"
 #include "OrientationSensor.h"
+#include "VoltageSensor.h"
+
+#include <PinChangeInt.h>
+
+#include "RCChannel.h"
 
 #include "defines.h"
 
 OrientationSensor *orientation;
+VoltageSensor *voltageSensor;
 MotorController *motorControl;
 PIDController *pitchControl;
 PIDController *rollControl;
 
 float pitch;
-float roll;
-
+double pitch_d = 0;
 int throttle_sig = 0;
-
-int roll_sig = 0;
 int pitch_sig = 0;
 
-long lastTime = millis();
-
 bool mpuInterrupt = false;
+
+RCChannel *throttle;
 
 void setup()
 {
 	Serial.begin(115200);
 	
 	Serial.println("Setting up sensors");
+	voltageSensor = new VoltageSensor(VOLTAGE_SENSOR_PIN, V_ALERT_PIN);
 	orientation = new OrientationSensor();
-
 	motorControl = new MotorController(MOTOR_A, MOTOR_B, MOTOR_C, MOTOR_D);
-
-	pitchControl = new PIDController();
-	rollControl = new PIDController();
-
-	pitchControl->setTunings(100.0, 0.01, 0.01);
 	
 	Serial.println("Arming motors");
 	motorControl->arm_esc();
 	
+	Serial.println("Settinp up stabilization and control");
+	pitchControl = new PIDController(0.92, 0.0, 0.00);
+	rollControl = new PIDController();
+
+	pitchControl->setTiming(0);
+
 	Serial.println("Setting up interrups");
+	throttle = new RCChannel();
 	init_interrupts();
 
 	Serial.println("Ready.");
@@ -53,71 +58,42 @@ void setup()
 
 void loop()
 {
+	voltageSensor->checkLevel();
+	
+	throttle_sig = throttle->read();
+
+	suspend_interrupts();
+	
 	while(!mpuInterrupt && !orientation->extraPackets())
-	{
-		long now = millis();
-		if( (now - lastTime) >= CYCLE_TIME)
-		{
-			int newThrottleSig = pulseIn(THROTTLE_PIN, HIGH, 11000);
-			if(newThrottleSig > 0)
-			{
-				throttle_sig = newThrottleSig;
-			}
-
-			int newRollSig = pulseIn(ROLL_PIN, HIGH, 11000);
-			if(newRollSig > 0)
-			{
-				roll_sig = newRollSig;
-			}
-
-			int newPitchSig = pulseIn(PITCH_PIN, HIGH, 11000);
-			if(newPitchSig > 0)
-			{
-				pitch_sig = newPitchSig;
-			}
-			lastTime = now;
-		}
-		
-		float pitch_g = pitchSignalToAngle(pitch_sig);
-		double pitch_d = 0;
-		
-		
-		pitchControl->compute(pitch, pitch_g, pitch_d);
-		
-		if(throttle_sig >= THROTTLE_SIG_MIN)
-		{
-			motorControl->setThrottle(throttle_sig);
-			motorControl->setPitch(pitch_d);
-		}
-		
-		float roll_g = rollSignalToAngle(roll_sig);
-		
-		/*
-		Serial.print(pitch_g);
-		Serial.print('\t');
-		Serial.println(pitch);
-		*/
-
-		
-		//Serial.println(throttle_sig);
-		//Serial.println(roll_sig);
-		//Serial.println(pitch_sig);
-	}
-
+	{}
+	
 	ypr_t ypr = orientation->getOrientation(mpuInterrupt);
 	if(!ypr.error)
-	{
+	{	
 		pitch = ypr.pitch;
 	}else if(ypr.error == 1) {
-		Serial.println("Packet size error");
+		Serial.println("MPU packet size error");
 	}else if(ypr.error == 2) {
 		Serial.println("FIFO overflow");
 	}
-	
 
+	resume_interrupts();
+
+	Serial.print(throttle_sig);
+	Serial.print('\t');
 	Serial.println(pitch);
+
+	float pitch_g = pitchSignalToAngle(pitch_sig);
+		
+	pitchControl->compute(pitch, pitch_g, pitch_d);
+	//Serial.println(pitch_d);
+
+	motorControl->setThrottle(throttle_sig);
+	motorControl->setPitch(pitch_d);
+	//Serial.println(pitch);
 	
 	mpuInterrupt = false;
+	
 }
 
 
@@ -136,18 +112,47 @@ float pitchSignalToAngle(float aSignal)
 void init_interrupts()
 {
 	
-    Serial.println(F("Waiting for first MPU interrupt..."));
+    Serial.println(F("MPU interrupt initialized"));
 	pinMode(MPU_INT_PIN, INPUT);
 	attachInterrupt(0, &updateMPUInterrupt, RISING);
 
+
+    Serial.println(F("Throttle interrupt initialized"));
+	pinMode(THROTTLE_PIN, INPUT);
+	digitalWrite(THROTTLE_PIN, LOW);
+	PCintPort::attachInterrupt(THROTTLE_PIN, &throttleInt, CHANGE);
+
+
 	throttle_sig = 0;
 	pitch_sig = (PITCH_SIG_MAX + PITCH_SIG_MIN) / 2;
-	roll_sig = (ROLL_SIG_MAX + ROLL_SIG_MIN) / 2;
+	//roll_sig = (ROLL_SIG_MAX + ROLL_SIG_MIN) / 2;
+}
+
+void suspend_interrupts()
+{
+	PCintPort::detachInterrupt(THROTTLE_PIN);
+}
+
+void resume_interrupts()
+{
+	PCintPort::attachInterrupt(THROTTLE_PIN, &throttleInt, CHANGE);
 }
 
 void updateMPUInterrupt()
 {
 	mpuInterrupt = true;
 }
+
+void throttleInt()
+{
+	if(PCintPort::pinState == HIGH)
+	{
+		throttle->risingInterrupt();
+	}else {
+		throttle->fallingInterrupt();
+	}
+	
+}
+
 
 

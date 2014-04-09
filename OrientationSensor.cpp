@@ -81,14 +81,14 @@ ypr_t OrientationSensor::getOrientation(bool mpuInterrupt)
 	        Serial.print(ypr[1] * 180/M_PI);
 	        Serial.print("\t");
 	        Serial.println(ypr[2] * 180/M_PI);
-			*/
+		*/
 
-	        
+	       
 	        curYPR.yaw = ypr[0] * 180/M_PI;
 	        curYPR.pitch = ypr[1] * 180/M_PI;
 	        curYPR.roll = ypr[2] * 180/M_PI;	        
 	        curYPR.error = 0;
-
+			
 	        return curYPR;
 	     }
         

@@ -14,10 +14,23 @@ PIDController::PIDController()
 
 	dt = 100;
 
-
 	lastTime = millis();
 }
 
+PIDController::PIDController(float Kp, float Ki, float Kd)
+{
+	this->Kp = Kp;
+	this->Ki = Ki;
+	this->Kd = Kd;
+
+	errSum = 0;
+	prevErr = 0;
+
+	dt = 100;
+
+
+	lastTime = millis();
+}
 void PIDController::compute(double state, double desired, double &output)
 {
 	
@@ -41,19 +54,7 @@ void PIDController::compute(double state, double desired, double &output)
 		double e_D = (error - prevErr)/current_dt;
 
 		output = Kp * e_P + Ki * e_I + Kd * e_D;
-/*
-		Serial.print(state);
-		Serial.print('\t');
-		Serial.print(desired);
-		Serial.print('\t');
-		Serial.print(error);
-		Serial.print('\t');
-		Serial.print(e_I);
-		Serial.print('\t');
-		Serial.print(e_D);
-		Serial.print('\t');
-		Serial.println(output);
-*/
+		
 		errSum = e_I;
 		prevErr = error;
 		lastTime = now;
